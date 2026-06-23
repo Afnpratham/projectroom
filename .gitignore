@@ -26,3 +26,6 @@ dist-ssr
 
 # npm cache
 .npm-cache
+
+# Raw scroll-scrub frame sequences (only the encoded master video is served)
+public/work/frames
