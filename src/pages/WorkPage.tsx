@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowDown } from 'lucide-react'
 import Navbar from '../components/Navbar'
@@ -14,15 +15,69 @@ import ProjectShowcase from '../components/work/ProjectShowcase'
  * there is no doubled figure, no seam, and no black gap.
  */
 export default function WorkPage() {
+  const heroRef = useRef<HTMLElement>(null)
+  const [lowerAnimationActive, setLowerAnimationActive] = useState(false)
+  const [lowerAnimationResetKey, setLowerAnimationResetKey] = useState(0)
+
+  useEffect(() => {
+    let wasActive = false
+    let ticking = false
+
+    const updateLowerAnimationState = () => {
+      ticking = false
+
+      const heroRect = heroRef.current?.getBoundingClientRect()
+      const heroFullyVisible =
+        heroRect !== undefined && heroRect.top >= -1 && heroRect.bottom <= window.innerHeight + 1
+      const shouldReset = window.scrollY <= 10 || heroFullyVisible
+      const shouldActivate = !shouldReset && window.scrollY > 10
+
+      if (shouldReset) {
+        if (wasActive) {
+          setLowerAnimationResetKey((key) => key + 1)
+        }
+        wasActive = false
+        setLowerAnimationActive(false)
+        return
+      }
+
+      if (shouldActivate && !wasActive) {
+        wasActive = true
+        setLowerAnimationActive(true)
+      }
+    }
+
+    const requestUpdate = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(updateLowerAnimationState)
+    }
+
+    updateLowerAnimationState()
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+    }
+  }, [])
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-black text-text-primary">
-      {/* Permanent fixed background (steady + lady) */}
-      <WorkBackground />
+      {/* Fixed background: hero video first, lower loop only after scroll activation */}
+      <WorkBackground
+        lowerAnimationActive={lowerAnimationActive}
+        lowerAnimationResetKey={lowerAnimationResetKey}
+      />
       <Navbar />
 
       <div className="relative z-10">
         {/* ── Hero — text over the fixed background ── */}
-        <section className="relative flex min-h-[100svh] items-center justify-center px-6 text-center">
+        <section
+          ref={heroRef}
+          className="relative flex min-h-[100svh] items-center justify-center px-6 text-center"
+        >
           {/* Soft dark scrim behind the centred text for legibility */}
           <div className="pointer-events-none absolute left-1/2 top-1/2 h-[440px] w-[min(760px,94vw)] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.5),rgba(0,0,0,0.22)_48%,transparent_78%)]" />
 
@@ -49,30 +104,15 @@ export default function WorkPage() {
           </div>
         </section>
 
-        {/* ── Interactive project archive (over the same fixed background) ── */}
+        {/* ── Ordered portfolio sections over the same fixed background ── */}
         <section
           id="work-list"
-          className="relative scroll-mt-32 overflow-hidden px-6 pb-28 pt-16 md:pb-40 md:pt-24"
+          className="relative scroll-mt-24 overflow-hidden"
         >
-          {/* Subtle local readability wash only — background stays visible */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/35 to-black/45" />
-
-          <div className="relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-100px' }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-auto mb-14 max-w-container"
-            >
-              <span className="text-xs tracking-[0.3em] text-white/55">THE ARCHIVE</span>
-              <h2 className="mt-5 max-w-2xl text-balance text-3xl leading-[1.1] tracking-tight text-white sm:text-4xl md:text-5xl">
-                Projects we built <span className="font-display italic">so far</span>
-              </h2>
-            </motion.div>
-
-            <ProjectShowcase />
-          </div>
+          <ProjectShowcase
+            lowerAnimationActive={lowerAnimationActive}
+            lowerAnimationResetKey={lowerAnimationResetKey}
+          />
         </section>
 
         <Footer />
