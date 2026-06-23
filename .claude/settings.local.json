@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio,sample_aspect_ratio -of default=noprint_wrappers=1 public/cosmic-flower-pingpong.mp4)",
+      "Bash(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 public/cosmic-flower-pingpong.mp4)",
+      "Bash(ffmpeg -ss 2 -i public/cosmic-flower-pingpong.mp4 -vf \"cropdetect=24:2:0\" -t 4 -f null -)",
+      "Bash(ffmpeg -i public/cosmic-flower-pingpong.mp4 -vf \"cropdetect=16:2:0\" -f null -)",
+      "Bash(ffmpeg -y -i public/cosmic-flower-pingpong.mp4 -vf \"crop=1504:1080:208:0\" -c:v libx264 -pix_fmt yuv420p -movflags +faststart -crf 18 -preset medium -an public/cosmic-flower-pingpong-clean.mp4)",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 public/cosmic-flower-pingpong-clean.mp4)",
+      "Bash(ffmpeg -i public/cosmic-flower-pingpong-clean.mp4 -vf \"cropdetect=16:2:0\" -t 5 -ss 2 -f null -)",
+      "Bash(set -e)",
+      "Bash(ffmpeg -y -i public/cosmic-flower-pingpong.mp4 -vf \"crop=1504:1080:208:0\" -c:v libvpx-vp9 -crf 30 -b:v 0 -row-mt 1 -an public/cosmic-flower-pingpong-clean.webm)",
+      "Bash(ffmpeg -y -i public/cosmic-flower-pingpong-4k.mp4 -vf \"crop=3008:2160:416:0\" -c:v libx264 -pix_fmt yuv420p -movflags +faststart -crf 18 -preset medium -an public/cosmic-flower-pingpong-4k-clean.mp4)",
+      "Bash(ffmpeg -y -i public/cosmic-flower-pingpong-4k.mp4 -vf \"crop=3008:2160:416:0\" -c:v libvpx-vp9 -crf 32 -b:v 0 -row-mt 1 -an public/cosmic-flower-pingpong-4k-clean.webm)",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 public/cosmic-flower-poster.jpg)",
+      "Bash(ffmpeg -i public/cosmic-flower-poster.jpg -vf \"cropdetect=24:2:0\" -f null -)",
+      "Bash(ffmpeg -y -i public/cosmic-flower-poster.jpg -vf \"crop=1504:1080:208:0\" -q:v 3 public/cosmic-flower-poster.jpg)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"TSC_EXIT=$?\")",
+      "Bash(npm run *)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"index: %{http_code}\\\\n\" http://localhost:4188/)",
+      "Bash(curl -s -o /dev/null -w \"index\\(127\\): %{http_code}\\\\n\" http://127.0.0.1:4188/)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless=new --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/orbit-hero-mobile.png --virtual-time-budget=4000 http://localhost:4188/)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless=new --disable-gpu --window-size=1440,900 --virtual-time-budget=3000 --dump-dom http://localhost:4188/)",
+      "Bash(echo \"TSC_DONE=$?\")",
+      "Bash(npm i *)",
+      "Bash(node /tmp/shot.mjs)",
+      "Bash(node /tmp/shot2.mjs)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(break)",
+      "Bash(echo \"TSC=$?\")",
+      "Bash(curl -s -o /dev/null -w \"dev server 5173: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(node /tmp/theme.mjs)",
+      "Bash(curl -s -o /dev/null -w \"dev 5173: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(node /tmp/verify.mjs)",
+      "Bash(npm rm *)",
+      "Bash(rm -f /tmp/verify.mjs /tmp/v-*.png)"
+    ]
+  }
+}

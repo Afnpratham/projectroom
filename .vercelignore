@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+.npm-cache
+.claude
+
+# Unused local video variants. The app serves the clean, mobile, and 4k-clean
+# assets referenced in src/components/CosmicFlowerBackground.tsx.
+public/cosmic-flower-pingpong-8k.mp4
+public/cosmic-flower-pingpong-4k.mp4
+public/cosmic-flower-pingpong-4k.webm
+public/cosmic-flower-pingpong.mp4
+public/cosmic-flower-pingpong.webm
+public/cosmic-flower.mp4
+public/cosmic-flower.webm
+public/flower-frames
+
+# Raw Work-page frame sequences. Only the encoded goddess-*.mp4/.webm videos
+# (generated from these frames) are served by the app.
+public/work/frames
