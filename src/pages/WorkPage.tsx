@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import { ArrowDown } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import WorkAtmosphere from '../components/work/WorkAtmosphere'
 import ScrollScrubVideo from '../components/work/ScrollScrubVideo'
 import ProjectShowcase from '../components/work/ProjectShowcase'
 
@@ -10,18 +11,14 @@ const MASTER = {
   mp4: '/work/work-scroll-master.mp4',
   webm: '/work/work-scroll-master.webm',
   poster: '/work/work-scroll-master-poster.jpg',
-  posterFinal: '/work/work-scroll-master-poster-final.jpg',
 }
 
 /**
- * The Work page — a premium scroll-driven cinematic portfolio archive.
- *
- * The opening is a pinned section whose sticky viewport holds one master video.
- * Scroll progress maps directly onto the video's currentTime, so scrolling down
- * moves the cyber-floral scene forward and scrolling up reverses it (never an
- * autoplay background). Overlay text appears one phase at a time. After the
- * pinned sequence the project list reveals over the artifact (final frame),
- * which stays softly visible behind the projects — no black dead section.
+ * The Work page — a cinematic cyber-floral project archive built around the lady
+ * figure. WorkAtmosphere is a fixed background that stays visible behind the
+ * whole page. The pinned intro renders a scroll-scrubbed copy of the same scene
+ * on top; as it fades near the end, the persistent atmosphere remains and the
+ * project list scrolls over it — so there is never a black dead screen.
  */
 export default function WorkPage() {
   const introRef = useRef<HTMLElement>(null)
@@ -32,36 +29,39 @@ export default function WorkPage() {
   })
 
   // ── Overlay phases (only one visible at a time) ──
-  // 0.00–0.30 · intro label + heading + subtitle
-  const introOpacity = useTransform(scrollYProgress, [0, 0.22, 0.3], [1, 1, 0])
-  // 0.30–0.60 · single supporting line
-  const midOpacity = useTransform(scrollYProgress, [0.3, 0.38, 0.55, 0.6], [0, 1, 1, 0])
-  // 0.85–1.00 · enter-the-archive cue
-  const enterOpacity = useTransform(scrollYProgress, [0.82, 0.92, 1], [0, 1, 1])
-  // scroll cue only at the very top
+  const introOpacity = useTransform(scrollYProgress, [0, 0.24, 0.32], [1, 1, 0])
+  const midOpacity = useTransform(scrollYProgress, [0.32, 0.42, 0.6, 0.66], [0, 1, 1, 0])
+  const enterOpacity = useTransform(scrollYProgress, [0.8, 0.9, 1], [0, 1, 1])
   const cueOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0])
 
+  // Scrub layer fades out near the end so it hands off to the fixed atmosphere
+  // (the same lady) — never fades to black, the atmosphere is always behind.
+  const scrubLayerOpacity = useTransform(scrollYProgress, [0.82, 0.97], [1, 0])
+
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-black text-text-primary">
+    <main className="relative min-h-screen overflow-x-hidden bg-black text-text-primary">
+      {/* Persistent cyber-floral background for the whole page */}
+      <WorkAtmosphere />
       <Navbar />
 
       <div className="relative z-10">
-        {/* ── Pinned, scroll-scrubbed cinematic intro ── */}
-        <section ref={introRef} className="relative h-[320vh] md:h-[420vh]">
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-black">
-            {/* Scrubbed master video */}
-            <ScrollScrubVideo
-              progress={scrollYProgress}
-              mp4={MASTER.mp4}
-              webm={MASTER.webm}
-              poster={MASTER.poster}
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
-
-            {/* Light cinematic overlays — keep the artifact visible (no heavy black) */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,220,200,0.10),transparent_55%)] mix-blend-screen" />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.6)_100%)]" />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/55" />
+        {/* ── Pinned, scroll-scrubbed cinematic intro (over the atmosphere) ── */}
+        <section ref={introRef} className="relative h-[280vh] bg-transparent md:h-[360vh]">
+          <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
+            {/* Scrubbed master video — fades near the end to reveal the atmosphere */}
+            <motion.div className="absolute inset-0" style={{ opacity: scrubLayerOpacity }}>
+              <ScrollScrubVideo
+                progress={scrollYProgress}
+                mp4={MASTER.mp4}
+                webm={MASTER.webm}
+                poster={MASTER.poster}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+              {/* Light overlays — keep the artifact visible (no heavy black) */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,220,200,0.10),transparent_55%)] mix-blend-screen" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/50" />
+            </motion.div>
 
             {/* Soft dark scrim behind centred text */}
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[440px] w-[min(760px,94vw)] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.5),rgba(0,0,0,0.22)_48%,transparent_78%)]" />
@@ -92,7 +92,7 @@ export default function WorkPage() {
               </p>
             </motion.div>
 
-            {/* Phase 4 · enter cue */}
+            {/* Phase 3 · enter cue */}
             <motion.div
               style={{ opacity: enterOpacity }}
               className="pointer-events-none absolute inset-x-0 bottom-16 flex flex-col items-center gap-2 text-center opacity-0"
@@ -117,22 +117,13 @@ export default function WorkPage() {
           </div>
         </section>
 
-        {/* ── Interactive project archive (artifact stays visible behind) ── */}
+        {/* ── Interactive project archive (over the persistent atmosphere) ── */}
         <section
           id="work-list"
-          className="relative scroll-mt-32 overflow-hidden bg-transparent px-6 pb-28 pt-32 md:pb-40 md:pt-40"
+          className="relative z-10 scroll-mt-32 bg-transparent px-6 pb-28 pt-24 md:pb-40 md:pt-28"
         >
-          {/* Persistent artifact background — final scene continues softly */}
-          <div className="pointer-events-none absolute inset-0">
-            <img
-              src={MASTER.posterFinal}
-              alt=""
-              className="h-full w-full object-cover object-center opacity-30"
-              draggable="false"
-            />
-            <div className="absolute inset-0 bg-black/45" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.85)_100%)]" />
-          </div>
+          {/* Subtle local readability wash only — atmosphere stays visible */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/40" />
 
           <div className="relative z-10">
             <motion.div
@@ -154,6 +145,6 @@ export default function WorkPage() {
 
         <Footer />
       </div>
-    </div>
+    </main>
   )
 }
