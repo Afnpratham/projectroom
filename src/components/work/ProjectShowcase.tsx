@@ -1,26 +1,41 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ImageIcon } from 'lucide-react'
 import { portfolio } from '../../data/portfolio'
 
 /**
  * Interactive project list for the Work page.
- * Desktop: hovering a row brightens it, dims the rest, shifts it right, and
- * updates a floating liquid-glass preview card on the right.
- * Mobile: each project is a compact card with its own inline preview image.
+ *
+ * Real portfolio media has not been uploaded yet, so every media slot is a
+ * premium grey placeholder (no fabricated visuals). On desktop, hovering a row
+ * brightens it, dims the rest, shifts it right, and reveals a large floating
+ * liquid-glass preview card. On mobile, each project is a stacked card with its
+ * own inline placeholder.
  */
+
+/** Greyish liquid-glass media placeholder used until real assets exist. */
+function PlaceholderMedia({ label, className = '' }: { label: string; className?: string }) {
+  return (
+    <div
+      className={`relative flex items-center justify-center overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015)_45%,rgba(0,0,0,0.25))] ${className}`}
+    >
+      <div className="flex flex-col items-center gap-2 text-white/30">
+        <ImageIcon size={26} strokeWidth={1.4} />
+        <span className="text-[10px] uppercase tracking-[0.25em]">{label}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function ProjectShowcase() {
   const [hovered, setHovered] = useState<number | null>(null)
-  const active = portfolio[hovered ?? 0]
+  const active = hovered !== null ? portfolio[hovered] : null
 
   return (
-    <div className="mx-auto grid max-w-container gap-12 px-6 lg:grid-cols-[1fr_minmax(320px,420px)] lg:gap-16">
+    <div className="mx-auto grid max-w-container gap-12 lg:grid-cols-[1fr_minmax(360px,460px)] lg:gap-16">
       {/* ── Rows ── */}
-      <ul
-        className="flex flex-col"
-        onMouseLeave={() => setHovered(null)}
-      >
+      <ul className="flex flex-col" onMouseLeave={() => setHovered(null)}>
         {portfolio.map((p, i) => {
           const dimmed = hovered !== null && hovered !== i
           return (
@@ -39,7 +54,7 @@ export default function ProjectShowcase() {
                 >
                   <span
                     className={`font-display text-2xl tabular-nums transition-colors ${
-                      dimmed ? 'text-white/25' : 'text-white/55'
+                      dimmed ? 'text-white/20' : 'text-white/55'
                     }`}
                   >
                     {String(i + 1).padStart(2, '0')}
@@ -47,14 +62,14 @@ export default function ProjectShowcase() {
                   <div className="min-w-0 flex-1">
                     <h3
                       className={`truncate text-3xl tracking-tight transition-colors lg:text-4xl ${
-                        dimmed ? 'text-white/35' : 'text-white group-hover:text-white'
+                        dimmed ? 'text-white/30' : 'text-white'
                       }`}
                     >
                       {p.title}
                     </h3>
                     <p
                       className={`mt-1.5 text-sm transition-colors ${
-                        dimmed ? 'text-white/25' : 'text-white/55'
+                        dimmed ? 'text-white/20' : 'text-white/55'
                       }`}
                     >
                       {p.category}
@@ -62,7 +77,7 @@ export default function ProjectShowcase() {
                   </div>
                   <span
                     className={`text-sm tabular-nums transition-colors ${
-                      dimmed ? 'text-white/25' : 'text-white/55'
+                      dimmed ? 'text-white/20' : 'text-white/55'
                     }`}
                   >
                     {p.year}
@@ -82,16 +97,10 @@ export default function ProjectShowcase() {
                   />
                 </motion.div>
 
-                {/* Mobile card with inline preview */}
+                {/* Mobile card with inline placeholder */}
                 <div className="md:hidden">
-                  <div className="liquid-glass relative mb-4 aspect-[16/10] overflow-hidden rounded-2xl">
-                    <img
-                      src={p.thumbnail}
-                      alt={p.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="liquid-glass mb-4 aspect-[16/10] overflow-hidden rounded-2xl">
+                    <PlaceholderMedia label="Media coming soon" className="h-full w-full" />
                   </div>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -117,36 +126,32 @@ export default function ProjectShowcase() {
         })}
       </ul>
 
-      {/* ── Floating preview card (desktop only) ── */}
+      {/* ── Floating preview card (desktop only, hover-driven) ── */}
       <div className="hidden lg:block">
         <div className="sticky top-32">
-          <motion.div
-            className="liquid-glass overflow-hidden rounded-3xl bg-white/[0.025] shadow-2xl shadow-black/50"
-            animate={{ opacity: hovered === null ? 0.85 : 1, scale: hovered === null ? 0.99 : 1 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={active.slug}
-                  src={active.thumbnail}
-                  alt={active.title}
-                  loading="lazy"
-                  initial={{ opacity: 0, scale: 1.04 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-            </div>
-            <div className="p-6">
-              <p className="text-xs uppercase tracking-[0.25em] text-white/45">{active.category}</p>
-              <h4 className="mt-2 text-xl tracking-tight text-white">{active.title}</h4>
-              <p className="mt-2 text-sm leading-relaxed text-white/55">{active.shortDescription}</p>
-            </div>
-          </motion.div>
+          <AnimatePresence mode="wait">
+            {active && (
+              <motion.div
+                key={active.slug}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="liquid-glass overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/50"
+              >
+                <PlaceholderMedia label="Project media coming soon" className="aspect-video w-full" />
+                <div className="p-6">
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/45">
+                    {active.category}
+                  </p>
+                  <h4 className="mt-2 text-xl tracking-tight text-white">{active.title}</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-white/50">
+                    Portfolio asset pending — case study coming soon.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

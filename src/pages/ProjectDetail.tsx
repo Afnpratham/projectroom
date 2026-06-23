@@ -1,45 +1,23 @@
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, ImageIcon } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import SiteAtmosphere from '../components/SiteAtmosphere'
 import Reveal from '../components/Reveal'
 import { getProject, type PortfolioProject } from '../data/portfolio'
 
-function Media({
-  media,
-  className,
-}: {
-  media: { type: 'image' | 'video'; src: string; poster?: string; caption?: string }
-  className?: string
-}) {
-  if (media.type === 'video') {
-    return (
-      <video
-        className={className}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster={media.poster}
-        src={media.src}
-      />
-    )
-  }
-  return <img className={className} src={media.src} alt={media.caption ?? ''} loading="lazy" />
-}
-
-function Section({ title, body }: { title: string; body?: string }) {
-  if (!body) return null
+/** Greyish liquid-glass media placeholder used until real assets exist. */
+function PlaceholderMedia({ label, className = '' }: { label: string; className?: string }) {
   return (
-    <Reveal className="border-t border-white/10 py-10">
-      <div className="grid gap-4 md:grid-cols-[200px_1fr] md:gap-10">
-        <h3 className="text-sm uppercase tracking-[0.25em] text-white/45">{title}</h3>
-        <p className="max-w-2xl text-lg leading-relaxed text-white/80">{body}</p>
+    <div
+      className={`relative flex items-center justify-center overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015)_45%,rgba(0,0,0,0.25))] ${className}`}
+    >
+      <div className="flex flex-col items-center gap-2.5 text-white/30">
+        <ImageIcon size={30} strokeWidth={1.3} />
+        <span className="text-[11px] uppercase tracking-[0.25em]">{label}</span>
       </div>
-    </Reveal>
+    </div>
   )
 }
 
@@ -73,7 +51,7 @@ export default function ProjectDetail() {
       <Navbar />
 
       <div className="relative z-10">
-        <article className="mx-auto max-w-container px-6 pt-28 md:pt-36">
+        <article className="mx-auto max-w-container px-6 pt-32 md:pt-40">
           {/* Back button */}
           <Reveal>
             <Link
@@ -100,19 +78,11 @@ export default function ProjectDetail() {
               {project.title}
             </h1>
           </Reveal>
-          <Reveal delay={0.15}>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-white/65">
-              {project.shortDescription}
-            </p>
-          </Reveal>
 
-          {/* Hero media */}
-          <Reveal delay={0.2}>
-            <div className="liquid-glass mt-12 overflow-hidden rounded-3xl">
-              <Media
-                media={project.heroMedia}
-                className="aspect-[16/9] w-full object-cover"
-              />
+          {/* Hero media placeholder */}
+          <Reveal delay={0.15}>
+            <div className="liquid-glass mt-12 overflow-hidden rounded-3xl border border-white/10">
+              <PlaceholderMedia label="Project media coming soon" className="aspect-[16/9] w-full" />
             </div>
           </Reveal>
 
@@ -135,33 +105,29 @@ export default function ProjectDetail() {
             </Reveal>
           )}
 
-          {/* Narrative sections (hide gracefully when missing) */}
-          <Section title="Overview" body={project.overview} />
-          <Section title="Challenge" body={project.challenge} />
-          <Section title="Solution" body={project.solution} />
-          <Section title="Outcome" body={project.outcome} />
-
-          {/* Gallery */}
-          {project.gallery.length > 0 && (
-            <div className="mt-16 grid gap-6 sm:grid-cols-2">
-              {project.gallery.map((g, i) => (
-                <Reveal
-                  key={g.src}
-                  delay={(i % 2) * 0.08}
-                  className={i % 3 === 0 ? 'sm:col-span-2' : ''}
-                >
-                  <figure className="liquid-glass overflow-hidden rounded-3xl">
-                    <Media media={g} className="aspect-[16/10] w-full object-cover" />
-                    {g.caption && (
-                      <figcaption className="px-5 py-4 text-sm text-white/55">
-                        {g.caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                </Reveal>
-              ))}
+          {/* Overview placeholder */}
+          <Reveal className="mt-2 border-t border-white/10 py-10">
+            <div className="grid gap-4 md:grid-cols-[200px_1fr] md:gap-10">
+              <h3 className="text-sm uppercase tracking-[0.25em] text-white/45">Overview</h3>
+              <p className="max-w-2xl text-lg leading-relaxed text-white/45">
+                Case study content coming soon. The full breakdown for this project — process,
+                visuals, and outcome — will be published once the portfolio assets are uploaded.
+              </p>
             </div>
-          )}
+          </Reveal>
+
+          {/* Gallery placeholders */}
+          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10 sm:col-span-2">
+              <PlaceholderMedia label="Gallery coming soon" className="aspect-[16/10] w-full" />
+            </div>
+            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10">
+              <PlaceholderMedia label="Asset pending" className="aspect-[16/11] w-full" />
+            </div>
+            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10">
+              <PlaceholderMedia label="Asset pending" className="aspect-[16/11] w-full" />
+            </div>
+          </div>
         </article>
 
         {/* Bottom CTA */}
