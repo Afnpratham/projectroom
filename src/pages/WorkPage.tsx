@@ -3,7 +3,6 @@ import { useRef } from 'react'
 import { ArrowDown } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import WorkAtmosphere from '../components/work/WorkAtmosphere'
 import ScrollScrubVideo from '../components/work/ScrollScrubVideo'
 import ProjectShowcase from '../components/work/ProjectShowcase'
 
@@ -14,11 +13,14 @@ const MASTER = {
 }
 
 /**
- * The Work page — a cinematic cyber-floral project archive built around the lady
- * figure. WorkAtmosphere is a fixed background that stays visible behind the
- * whole page. The pinned intro renders a scroll-scrubbed copy of the same scene
- * on top; as it fades near the end, the persistent atmosphere remains and the
- * project list scrolls over it — so there is never a black dead screen.
+ * The Work page — a cinematic cyber-floral project archive.
+ *
+ * ONE pinned layer only: a tall wrapper section creates the scroll distance,
+ * and an inner sticky viewport holds a single scroll-scrubbed video (the master
+ * sequence built from the frame folders). Scroll position drives the frame; the
+ * layer stays anchored while overlays move on top. The project archive is a
+ * clean opaque section AFTER the wrapper — nothing bleeds up into the pinned
+ * layer, so there is no doubled figure and no seam.
  */
 export default function WorkPage() {
   const introRef = useRef<HTMLElement>(null)
@@ -34,22 +36,16 @@ export default function WorkPage() {
   const enterOpacity = useTransform(scrollYProgress, [0.8, 0.9, 1], [0, 1, 1])
   const cueOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0])
 
-  // Scrub layer fades out near the end so it hands off to the fixed atmosphere
-  // (the same lady) — never fades to black, the atmosphere is always behind.
-  const scrubLayerOpacity = useTransform(scrollYProgress, [0.82, 0.97], [1, 0])
-
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-black text-text-primary">
-      {/* Persistent cyber-floral background for the whole page */}
-      <WorkAtmosphere />
       <Navbar />
 
       <div className="relative z-10">
-        {/* ── Pinned, scroll-scrubbed cinematic intro (over the atmosphere) ── */}
-        <section ref={introRef} className="relative h-[280vh] bg-transparent md:h-[360vh]">
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
-            {/* Scrubbed master video — fades near the end to reveal the atmosphere */}
-            <motion.div className="absolute inset-0" style={{ opacity: scrubLayerOpacity }}>
+        {/* ── Pinned, scroll-scrubbed cinematic intro (single layer) ── */}
+        <section ref={introRef} className="relative h-[280vh] bg-black md:h-[360vh]">
+          <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-black">
+            {/* The one and only figure layer — stays opaque the whole pin */}
+            <div className="absolute inset-0">
               <ScrollScrubVideo
                 progress={scrollYProgress}
                 mp4={MASTER.mp4}
@@ -60,8 +56,8 @@ export default function WorkPage() {
               {/* Light overlays — keep the artifact visible (no heavy black) */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,220,200,0.10),transparent_55%)] mix-blend-screen" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/50" />
-            </motion.div>
+              <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/45" />
+            </div>
 
             {/* Soft dark scrim behind centred text */}
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[440px] w-[min(760px,94vw)] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.5),rgba(0,0,0,0.22)_48%,transparent_78%)]" />
@@ -117,13 +113,13 @@ export default function WorkPage() {
           </div>
         </section>
 
-        {/* ── Interactive project archive (over the persistent atmosphere) ── */}
+        {/* ── Interactive project archive — opaque section AFTER the wrapper ── */}
         <section
           id="work-list"
-          className="relative z-10 scroll-mt-32 bg-transparent px-6 pb-28 pt-24 md:pb-40 md:pt-28"
+          className="relative z-10 scroll-mt-32 overflow-hidden bg-black px-6 pb-28 pt-24 md:pb-40 md:pt-28"
         >
-          {/* Subtle local readability wash only — atmosphere stays visible */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/40" />
+          {/* Subtle premium charcoal wash so the section reads intentional, not flat */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.04),transparent_60%)]" />
 
           <div className="relative z-10">
             <motion.div
