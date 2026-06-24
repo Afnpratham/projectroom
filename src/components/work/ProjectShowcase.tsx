@@ -1,32 +1,24 @@
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useInView, useScroll, useTransform } from 'framer-motion'
-import { ArrowUpRight, ImageIcon, Mail, Move } from 'lucide-react'
-import { portfolio, type PortfolioProject } from '../../data/portfolio'
-
-type PortfolioSection = {
-  eyebrow: string
-  title: string
-  description: string
-  projects: PortfolioProject[]
-  placeholders?: number
-}
-
-/** Greyish liquid-glass media placeholder used until real assets exist. */
-function PlaceholderMedia({ label, className = '' }: { label: string; className?: string }) {
-  return (
-    <div
-      className={`relative flex items-center justify-center overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.018)_46%,rgba(0,0,0,0.28))] ${className}`}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.13),transparent_36%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-white/25" />
-      <div className="relative flex flex-col items-center gap-3 text-white/34">
-        <ImageIcon size={34} strokeWidth={1.25} />
-        <span className="text-[10px] uppercase tracking-[0.28em]">{label}</span>
-      </div>
-    </div>
-  )
-}
+import { ArrowUpRight, Mail, MessageCircle, Move, Phone } from 'lucide-react'
+import {
+  creatives,
+  videoProjects,
+  websiteProjects,
+  type Creative,
+  type PortfolioProject,
+} from '../../data/portfolio'
+import {
+  EMAIL,
+  EMAIL_HREF,
+  INSTAGRAM_URL,
+  LINKEDIN_URL,
+  PHONE_DISPLAY,
+  PHONE_HREF,
+  WHATSAPP_URL,
+} from '../../config/site'
+import VideoPreview from '../VideoPreview'
 
 function ProjectCard({ project, index }: { project: PortfolioProject; index: number }) {
   return (
@@ -34,7 +26,23 @@ function ProjectCard({ project, index }: { project: PortfolioProject; index: num
       to={`/work/${project.slug}`}
       className="group liquid-glass block min-h-[clamp(360px,48vw,620px)] overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.025]"
     >
-      <PlaceholderMedia label="Project media coming soon" className="h-[62%] min-h-[230px] w-full" />
+      <div className="h-[62%] min-h-[230px] w-full overflow-hidden">
+        {project.mediaType === 'video' ? (
+          <VideoPreview
+            src={project.preview}
+            poster={project.thumbnail}
+            title={project.title}
+            className="h-full w-full"
+          />
+        ) : (
+          <img
+            src={project.preview}
+            alt={project.title}
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
       <div className="flex min-h-[38%] flex-col justify-between p-6 sm:p-8">
         <div className="flex items-start justify-between gap-6">
           <span className="font-display text-3xl tabular-nums text-white/40">
@@ -55,6 +63,11 @@ function ProjectCard({ project, index }: { project: PortfolioProject; index: num
             <span className="liquid-glass rounded-full px-3 py-1 text-xs text-white/75">
               {project.type}
             </span>
+            {project.tags.slice(0, 2).map((tag) => (
+              <span key={tag} className="liquid-glass rounded-full px-3 py-1 text-xs text-white/65">
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -62,18 +75,15 @@ function ProjectCard({ project, index }: { project: PortfolioProject; index: num
   )
 }
 
-function EmptyPlaceholderCard({ label, index }: { label: string; index: number }) {
-  return (
-    <div className="liquid-glass min-h-[clamp(320px,40vw,520px)] overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.02]">
-      <PlaceholderMedia label={label} className="h-full min-h-[inherit] w-full" />
-      <div className="pointer-events-none absolute left-6 top-6 font-display text-3xl tabular-nums text-white/35">
-        {String(index + 1).padStart(2, '0')}
-      </div>
-    </div>
-  )
-}
-
-function SectionHeader({ eyebrow, title, description }: Omit<PortfolioSection, 'projects'>) {
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 34 }}
@@ -93,24 +103,65 @@ function SectionHeader({ eyebrow, title, description }: Omit<PortfolioSection, '
   )
 }
 
-function OrderedPortfolioSection({ section }: { section: PortfolioSection }) {
-  const cards = section.projects.length + (section.placeholders ?? 0)
+/** ── 02 / Creative — curated masonry gallery of real creatives. ── */
+function CreativeCard({ creative }: { creative: Creative }) {
+  return (
+    <figure
+      className={`group liquid-glass relative mb-[clamp(16px,2vw,28px)] overflow-hidden rounded-[24px] border border-white/10 ${
+        creative.orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-square'
+      }`}
+    >
+      <img
+        src={creative.image}
+        alt={creative.title}
+        loading="lazy"
+        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <figcaption className="absolute inset-x-0 bottom-0 translate-y-2 p-5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <p className="text-xs uppercase tracking-[0.22em] text-white/60">{creative.category}</p>
+        <p className="mt-1 text-lg leading-tight tracking-tight text-white">{creative.title}</p>
+      </figcaption>
+    </figure>
+  )
+}
 
+function CreativeSection() {
   return (
     <section className="relative min-h-[100svh] w-full px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/38 to-black/48" />
       <div className="relative z-10 mx-auto max-w-[1600px]">
-        <SectionHeader {...section} />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-[clamp(24px,4vw,56px)]">
-          {section.projects.map((project, index) => (
-            <ProjectCard key={project.slug} project={project} index={index} />
+        <SectionHeader
+          eyebrow="02 / Creative"
+          title="Creative Portfolio"
+          description="Brand campaigns, event posters, and social creatives — visual systems designed to stop the scroll and carry a message clearly."
+        />
+        <div className="columns-1 gap-[clamp(16px,2vw,28px)] sm:columns-2 lg:columns-3">
+          {creatives.map((creative) => (
+            <div key={creative.title} className="break-inside-avoid">
+              <CreativeCard creative={creative} />
+            </div>
           ))}
-          {Array.from({ length: section.placeholders ?? 0 }).map((_, offset) => (
-            <EmptyPlaceholderCard
-              key={`${section.title}-${offset}`}
-              index={section.projects.length + offset}
-              label={cards > 1 ? 'Portfolio asset pending' : 'Portfolio coming soon'}
-            />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** ── 03 / Videos — real preview clips with poster fallbacks. ── */
+function VideoSection() {
+  return (
+    <section className="relative min-h-[100svh] w-full px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/38 to-black/48" />
+      <div className="relative z-10 mx-auto max-w-[1600px]">
+        <SectionHeader
+          eyebrow="03 / Videos"
+          title="Videos We've Edited"
+          description="Cinematic short films and short-form edits — paced, graded, and built to hold attention. Previews play muted; open a project for the full story."
+        />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-[clamp(24px,4vw,56px)]">
+          {videoProjects.map((project, index) => (
+            <ProjectCard key={project.slug} project={project} index={index} />
           ))}
         </div>
       </div>
@@ -151,8 +202,8 @@ function DraggableWebsites({
             Websites We&apos;ve Built
           </h2>
           <p className="mt-7 max-w-xl text-[clamp(1rem,1.4vw,1.25rem)] leading-relaxed text-white/66">
-            Drag through the website archive as it comes into view. Real media can drop into these
-            large preview surfaces when the assets are ready.
+            Drag through the website archive as it comes into view. Each preview plays a muted
+            walkthrough — hover or open a card for the full case study.
           </p>
           <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 text-sm text-white/68 backdrop-blur-md">
             <Move size={16} />
@@ -236,44 +287,6 @@ export default function ProjectShowcase({
   lowerAnimationActive,
   lowerAnimationResetKey,
 }: ProjectShowcaseProps) {
-  const websiteProjects = useMemo(
-    () =>
-      portfolio.filter((project) =>
-        ['website', 'landing page', 'web app'].some((term) =>
-          project.category.toLowerCase().includes(term),
-        ),
-      ),
-    [],
-  )
-
-  const videoProjects = useMemo(
-    () =>
-      portfolio.filter((project) =>
-        ['video', 'editing'].some((term) =>
-          `${project.category} ${project.services.join(' ')}`.toLowerCase().includes(term),
-        ),
-      ),
-    [],
-  )
-
-  const creativeSection: PortfolioSection = {
-    eyebrow: '02 / Creative',
-    title: 'Creative Portfolio',
-    description:
-      'A dedicated space for visual systems, creative direction, social assets, and campaign design. Placeholders stay neutral until the actual work is uploaded.',
-    projects: [],
-    placeholders: 3,
-  }
-
-  const videoSection: PortfolioSection = {
-    eyebrow: '03 / Videos',
-    title: "Videos We've Edited",
-    description:
-      'Video and motion work appears here with large preview blocks, ready for final reels, edits, and behind-the-scenes media.',
-    projects: videoProjects,
-    placeholders: videoProjects.length ? 1 : 3,
-  }
-
   return (
     <>
       <DraggableWebsites
@@ -281,8 +294,8 @@ export default function ProjectShowcase({
         lowerAnimationActive={lowerAnimationActive}
         lowerAnimationResetKey={lowerAnimationResetKey}
       />
-      <OrderedPortfolioSection section={creativeSection} />
-      <OrderedPortfolioSection section={videoSection} />
+      <CreativeSection />
+      <VideoSection />
 
       <section
         id="contact"
@@ -294,21 +307,49 @@ export default function ProjectShowcase({
           <h2 className="mt-5 max-w-5xl text-balance text-[clamp(3rem,8vw,7rem)] leading-[0.92] tracking-tight text-white">
             Let&apos;s build the next room around your brand.
           </h2>
-          <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center">
             <motion.a
-              href="mailto:hello@theorbitroom.com"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
               whileHover={{ scale: 1.035 }}
               whileTap={{ scale: 0.98 }}
               className="accent-gradient inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-bg"
             >
-              <Mail size={17} />
-              Start a Project
+              <MessageCircle size={17} />
+              Start on WhatsApp
             </motion.a>
             <a
-              href="mailto:hello@theorbitroom.com"
-              className="text-base text-white/58 transition-colors hover:text-white"
+              href={EMAIL_HREF}
+              className="liquid-glass inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-white"
             >
-              hello@theorbitroom.com
+              <Mail size={17} />
+              {EMAIL}
+            </a>
+            <a
+              href={PHONE_HREF}
+              className="liquid-glass inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-white"
+            >
+              <Phone size={17} />
+              {PHONE_DISPLAY}
+            </a>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/55">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              Instagram
+            </a>
+            <a
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              LinkedIn
             </a>
           </div>
         </div>

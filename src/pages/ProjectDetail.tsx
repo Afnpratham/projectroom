@@ -1,25 +1,13 @@
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight, ImageIcon } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, ExternalLink, MessageCircle } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import SiteAtmosphere from '../components/SiteAtmosphere'
 import Reveal from '../components/Reveal'
+import VideoPreview from '../components/VideoPreview'
 import { getProject, type PortfolioProject } from '../data/portfolio'
-
-/** Greyish liquid-glass media placeholder used until real assets exist. */
-function PlaceholderMedia({ label, className = '' }: { label: string; className?: string }) {
-  return (
-    <div
-      className={`relative flex items-center justify-center overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015)_45%,rgba(0,0,0,0.25))] ${className}`}
-    >
-      <div className="flex flex-col items-center gap-2.5 text-white/30">
-        <ImageIcon size={30} strokeWidth={1.3} />
-        <span className="text-[11px] uppercase tracking-[0.25em]">{label}</span>
-      </div>
-    </div>
-  )
-}
+import { WHATSAPP_URL } from '../config/site'
 
 function NotFound() {
   return (
@@ -44,6 +32,8 @@ export default function ProjectDetail() {
   const project: PortfolioProject | undefined = slug ? getProject(slug) : undefined
 
   if (!project) return <NotFound />
+
+  const aspectClass = project.ratio === '9/16' ? 'aspect-[9/16] mx-auto max-w-sm' : 'aspect-[16/9]'
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-text-primary">
@@ -79,12 +69,52 @@ export default function ProjectDetail() {
             </h1>
           </Reveal>
 
-          {/* Hero media placeholder */}
+          {project.liveUrl && (
+            <Reveal delay={0.12}>
+              <a
+                href={project.liveUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="liquid-glass mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white transition-transform duration-300 hover:scale-[1.03]"
+              >
+                Visit live site
+                <ExternalLink size={15} />
+              </a>
+            </Reveal>
+          )}
+
+          {/* Hero media */}
           <Reveal delay={0.15}>
             <div className="liquid-glass mt-12 overflow-hidden rounded-3xl border border-white/10">
-              <PlaceholderMedia label="Project media coming soon" className="aspect-[16/9] w-full" />
+              {project.mediaType === 'video' ? (
+                <VideoPreview
+                  src={project.preview}
+                  poster={project.thumbnail}
+                  title={project.title}
+                  className={`w-full ${aspectClass}`}
+                />
+              ) : (
+                <img
+                  src={project.preview}
+                  alt={project.title}
+                  className={`w-full object-cover ${aspectClass}`}
+                />
+              )}
             </div>
           </Reveal>
+
+          {/* Tags */}
+          {project.tags.length > 0 && (
+            <Reveal className="mt-8">
+              <div className="flex flex-wrap gap-2.5">
+                {project.tags.map((tag) => (
+                  <span key={tag} className="liquid-glass rounded-full px-4 py-2 text-sm text-white/80">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </Reveal>
+          )}
 
           {/* Services */}
           {project.services.length > 0 && (
@@ -105,33 +135,19 @@ export default function ProjectDetail() {
             </Reveal>
           )}
 
-          {/* Overview placeholder */}
+          {/* Overview */}
           <Reveal className="mt-2 border-t border-white/10 py-10">
             <div className="grid gap-4 md:grid-cols-[200px_1fr] md:gap-10">
               <h3 className="text-sm uppercase tracking-[0.25em] text-white/45">Overview</h3>
-              <p className="max-w-2xl text-lg leading-relaxed text-white/45">
-                Case study content coming soon. The full breakdown for this project — process,
-                visuals, and outcome — will be published once the portfolio assets are uploaded.
+              <p className="max-w-2xl text-lg leading-relaxed text-white/70">
+                {project.description}
               </p>
             </div>
           </Reveal>
-
-          {/* Gallery placeholders */}
-          <div className="mt-10 grid gap-6 sm:grid-cols-2">
-            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10 sm:col-span-2">
-              <PlaceholderMedia label="Gallery coming soon" className="aspect-[16/10] w-full" />
-            </div>
-            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10">
-              <PlaceholderMedia label="Asset pending" className="aspect-[16/11] w-full" />
-            </div>
-            <div className="liquid-glass overflow-hidden rounded-3xl border border-white/10">
-              <PlaceholderMedia label="Asset pending" className="aspect-[16/11] w-full" />
-            </div>
-          </div>
         </article>
 
         {/* Bottom CTA */}
-        <section className="px-6 pb-24 pt-24">
+        <section className="px-6 pb-24 pt-12">
           <div className="relative mx-auto max-w-container overflow-hidden rounded-[2rem] px-6 py-20 text-center md:py-28">
             <div className="liquid-glass absolute inset-0 rounded-[2rem]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,220,200,0.10),transparent_60%)]" />
@@ -143,11 +159,14 @@ export default function ProjectDetail() {
                 Let’s shape the visuals, motion, and experience around what you’re building.
               </p>
               <motion.a
-                href="mailto:hello@theorbitroom.com"
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.98 }}
                 className="accent-gradient mt-8 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium text-bg"
               >
+                <MessageCircle size={16} />
                 Start a Project
                 <ArrowUpRight size={16} />
               </motion.a>

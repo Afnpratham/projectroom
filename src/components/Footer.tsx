@@ -1,4 +1,13 @@
 import { Link } from 'react-router-dom'
+import {
+  EMAIL,
+  EMAIL_HREF,
+  INSTAGRAM_URL,
+  LINKEDIN_URL,
+  PHONE_DISPLAY,
+  PHONE_HREF,
+  WHATSAPP_URL,
+} from '../config/site'
 
 function OrbitMark() {
   return (
@@ -42,7 +51,7 @@ export default function Footer() {
             Work
           </Link>
           <a
-            href="mailto:hello@theorbitroom.com"
+            href="/#contact"
             className="text-sm text-muted transition-colors hover:text-text-primary"
           >
             Contact
@@ -52,16 +61,35 @@ export default function Footer() {
         <nav className="flex flex-col gap-3">
           <span className="text-xs tracking-[0.2em] text-muted">CONNECT</span>
           <a
-            href="mailto:hello@theorbitroom.com"
+            href={EMAIL_HREF}
             className="text-sm text-muted transition-colors hover:text-text-primary"
           >
-            hello@theorbitroom.com
+            {EMAIL}
           </a>
-          <a href="#" className="text-sm text-muted transition-colors hover:text-text-primary">
+          <a
+            href={PHONE_HREF}
+            className="text-sm text-muted transition-colors hover:text-text-primary"
+          >
+            {PHONE_DISPLAY}
+          </a>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-muted transition-colors hover:text-text-primary"
+          >
             Instagram
           </a>
           <a
-            href="https://wa.me/"
+            href={LINKEDIN_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-muted transition-colors hover:text-text-primary"
+          >
+            LinkedIn
+          </a>
+          <a
+            href={WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
             className="text-sm text-muted transition-colors hover:text-text-primary"

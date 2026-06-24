@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
-
-const CONTACT_EMAIL = 'mailto:hello@theorbitroom.com'
+import { EMAIL_HREF, ORBIT_ROOM_URL, WHATSAPP_URL } from '../config/site'
 
 function OrbitMark() {
   return (
@@ -71,6 +70,14 @@ export default function Navbar() {
         {/* Desktop links */}
         <ul className="hidden items-center gap-1 md:flex">
           <li>
+            <a
+              href={ORBIT_ROOM_URL}
+              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-white/70 transition-colors hover:text-white"
+            >
+              <span aria-hidden="true">←</span> Back to Main Website
+            </a>
+          </li>
+          <li>
             <Link
               to="/"
               className="rounded-full px-4 py-2 text-sm text-white transition-colors hover:text-white"
@@ -80,7 +87,7 @@ export default function Navbar() {
           </li>
           <li>
             <a
-              href={CONTACT_EMAIL}
+              href={EMAIL_HREF}
               className="rounded-full px-4 py-2 text-sm text-white/70 transition-colors hover:text-white"
             >
               Contact
@@ -90,7 +97,9 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           <a
-            href={CONTACT_EMAIL}
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
             className="accent-gradient hidden rounded-full px-5 py-2.5 text-sm font-medium text-bg transition-transform duration-300 hover:scale-[1.03] sm:inline-block"
           >
             Start a Project
@@ -118,6 +127,15 @@ export default function Navbar() {
           >
             <ul className="flex flex-col rounded-3xl border border-white/15 bg-black/70 p-4 backdrop-blur-xl">
               <li>
+                <a
+                  href={ORBIT_ROOM_URL}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-2xl px-4 py-3 text-base text-text-primary transition-colors hover:bg-white/5"
+                >
+                  ← Back to Main Website
+                </a>
+              </li>
+              <li>
                 <Link
                   to="/"
                   onClick={() => setOpen(false)}
@@ -128,7 +146,7 @@ export default function Navbar() {
               </li>
               <li>
                 <a
-                  href={CONTACT_EMAIL}
+                  href={EMAIL_HREF}
                   onClick={() => setOpen(false)}
                   className="block rounded-2xl px-4 py-3 text-base text-text-primary transition-colors hover:bg-white/5"
                 >
@@ -137,7 +155,9 @@ export default function Navbar() {
               </li>
               <li className="mt-2">
                 <a
-                  href={CONTACT_EMAIL}
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noreferrer"
                   onClick={() => setOpen(false)}
                   className="accent-gradient block rounded-2xl px-4 py-3 text-center text-base font-medium text-bg"
                 >
