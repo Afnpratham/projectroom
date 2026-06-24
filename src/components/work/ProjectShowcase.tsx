@@ -1,7 +1,16 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useInView, useScroll, useTransform } from 'framer-motion'
-import { ArrowUpRight, Mail, MessageCircle, Move, Phone } from 'lucide-react'
+import { motion } from 'framer-motion'
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Mail,
+  MessageCircle,
+  Move,
+  Phone,
+  Play,
+} from 'lucide-react'
 import {
   creatives,
   videoProjects,
@@ -20,14 +29,280 @@ import {
 } from '../../config/site'
 import VideoPreview from '../VideoPreview'
 
-function ProjectCard({ project, index }: { project: PortfolioProject; index: number }) {
+/* ═══════════════════════════════════════════════════════════════════════════
+   Small hooks
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Reactive matchMedia — used to swap the 3D coverflow for a mobile swiper. */
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+  )
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const onChange = () => setMatches(mql.matches)
+    onChange()
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3D COVERFLOW — draggable, looping, with inertia + snap
+   ───────────────────────────────────────────────────────────────────────────
+   The whole carousel is driven by a single continuous float `position` (in
+   "card" units). Each card's screen transform is derived from its signed,
+   wrapped distance to that position, so the cards always live on a clean curved
+   arc — they never stack on top of each other and text never collides.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function Coverflow({ projects }: { projects: PortfolioProject[] }) {
+  const count = projects.length
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(1100)
+
+  // The physics live in refs (read only inside the rAF loop + handlers) so the
+  // loop never re-subscribes; `pos`/`isDragging` mirror them into state so the
+  // render derives transforms from state, never from a ref.
+  const posRef = useRef(0)
+  const velRef = useRef(0)
+  const snapTargetRef = useRef<number | null>(null)
+  const draggingRef = useRef(false)
+  const movedRef = useRef(false)
+  const startXRef = useRef(0)
+  const startPosRef = useRef(0)
+
+  const [pos, setPos] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Track the container width to keep the arc responsive.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const measure = () => setWidth(el.clientWidth)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Animation loop: snap-to-target → inertia → settle to nearest card.
+  useEffect(() => {
+    let raf = 0
+    const loop = () => {
+      if (!draggingRef.current) {
+        if (snapTargetRef.current !== null) {
+          const diff = snapTargetRef.current - posRef.current
+          if (Math.abs(diff) > 0.001) {
+            posRef.current += diff * 0.16
+          } else {
+            posRef.current = snapTargetRef.current
+            snapTargetRef.current = null
+          }
+          velRef.current = 0
+          setPos(posRef.current)
+        } else if (Math.abs(velRef.current) > 0.0016) {
+          posRef.current += velRef.current
+          velRef.current *= 0.92
+          setPos(posRef.current)
+        } else if (velRef.current !== 0) {
+          velRef.current = 0
+          // settle onto the nearest card
+          snapTargetRef.current = Math.round(posRef.current)
+        } else {
+          const nearest = Math.round(posRef.current)
+          if (Math.abs(nearest - posRef.current) > 0.0005) {
+            posRef.current += (nearest - posRef.current) * 0.16
+            setPos(posRef.current)
+          }
+        }
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  // Responsive geometry derived from the measured width.
+  const cardW = Math.min(380, Math.max(248, width * 0.34))
+  const stepX = cardW * 0.74
+  const depth = cardW * 0.62
+  const maxVisible = Math.min(2, Math.floor(count / 2))
+
+  const activeIndex = ((Math.round(pos) % count) + count) % count
+
+  /* ── pointer / drag ─────────────────────────────────────────── */
+  const onPointerDown = (e: React.PointerEvent) => {
+    draggingRef.current = true
+    setIsDragging(true)
+    movedRef.current = false
+    velRef.current = 0
+    snapTargetRef.current = null
+    startXRef.current = e.clientX
+    startPosRef.current = posRef.current
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  }
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return
+    const dx = e.clientX - startXRef.current
+    if (Math.abs(dx) > 4) movedRef.current = true
+    const dragDist = Math.max(width * 0.46, 240) // px to advance one card
+    const next = startPosRef.current - dx / dragDist
+    velRef.current = next - posRef.current
+    posRef.current = next
+    setPos(next)
+  }
+
+  const onPointerUp = () => {
+    if (!draggingRef.current) return
+    draggingRef.current = false
+    setIsDragging(false)
+    velRef.current = Math.max(-0.42, Math.min(0.42, velRef.current))
+    if (Math.abs(velRef.current) < 0.012) {
+      velRef.current = 0
+      snapTargetRef.current = Math.round(posRef.current)
+    }
+  }
+
+  const goTo = (dir: number) => {
+    velRef.current = 0
+    snapTargetRef.current = Math.round(posRef.current) + dir
+  }
+
+  // Bring a clicked side card to the front along the shortest path.
+  const focusCard = (index: number) => {
+    velRef.current = 0
+    const base = Math.round((posRef.current - index) / count) * count + index
+    snapTargetRef.current = base
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className={`coverflow${isDragging ? ' coverflow--dragging' : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onPointerLeave={onPointerUp}
+    >
+      <div className="coverflow-stage">
+        {projects.map((project, index) => {
+          // signed, wrapped distance from the current position
+          let off = index - pos
+          off = ((off % count) + count) % count
+          if (off > count / 2) off -= count
+
+          const abs = Math.abs(off)
+          const hidden = abs > maxVisible + 0.5
+          const clamped = Math.max(-1.6, Math.min(1.6, off))
+          const isActive = index === activeIndex
+
+          const translateX = off * stepX
+          const translateZ = -abs * depth
+          const rotateY = -clamped * 30
+          const scale = Math.max(0.66, 1 - abs * 0.14)
+          const opacity = hidden ? 0 : Math.max(0, 1 - abs * 0.34)
+          const blur = abs < 0.4 ? 0 : Math.min(abs * 2.4, 6)
+          const zIndex = 100 - Math.round(abs * 10)
+
+          return (
+            <div
+              key={project.slug}
+              className={`cf-card${isActive ? ' cf-card--active' : ''}`}
+              style={{
+                width: cardW,
+                transform: `translate(-50%, -50%) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                opacity,
+                zIndex,
+                filter: blur ? `blur(${blur}px)` : undefined,
+                pointerEvents: hidden ? 'none' : 'auto',
+              }}
+              aria-hidden={hidden}
+            >
+              <CoverflowCard
+                project={project}
+                index={index}
+                isActive={isActive}
+                onActivate={() => focusCard(index)}
+                wasDragged={() => movedRef.current}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="cf-nav cf-nav--prev"
+        onClick={() => goTo(-1)}
+        aria-label="Previous project"
+      >
+        <ChevronLeft size={20} />
+      </button>
+      <button
+        type="button"
+        className="cf-nav cf-nav--next"
+        onClick={() => goTo(1)}
+        aria-label="Next project"
+      >
+        <ChevronRight size={20} />
+      </button>
+
+      <div className="cf-dots">
+        {projects.map((p, i) => (
+          <button
+            key={p.slug}
+            type="button"
+            className={`cf-dot${i === activeIndex ? ' cf-dot--active' : ''}`}
+            onClick={() => focusCard(i)}
+            aria-label={`Go to ${p.title}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CoverflowCard({
+  project,
+  index,
+  isActive,
+  onActivate,
+  wasDragged,
+}: {
+  project: PortfolioProject
+  index: number
+  isActive: boolean
+  onActivate: () => void
+  wasDragged: () => boolean
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    // A drag should never trigger navigation or focus.
+    if (wasDragged()) {
+      e.preventDefault()
+      return
+    }
+    // Clicking a side card recentres it instead of navigating.
+    if (!isActive) {
+      e.preventDefault()
+      onActivate()
+    }
+  }
+
   return (
     <Link
       to={`/work/${project.slug}`}
-      className="group liquid-glass block min-h-[clamp(360px,48vw,620px)] overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.025]"
+      className="cf-card-inner"
+      onClick={handleClick}
+      draggable={false}
+      tabIndex={isActive ? 0 : -1}
     >
-      <div className="h-[62%] min-h-[230px] w-full overflow-hidden">
-        {project.mediaType === 'video' ? (
+      <div className="cf-card-media">
+        {isActive && project.mediaType === 'video' ? (
           <VideoPreview
             src={project.preview}
             poster={project.thumbnail}
@@ -36,91 +311,212 @@ function ProjectCard({ project, index }: { project: PortfolioProject; index: num
           />
         ) : (
           <img
-            src={project.preview}
+            src={project.thumbnail}
             alt={project.title}
             loading="lazy"
+            draggable={false}
             className="h-full w-full object-cover"
           />
         )}
+        <span className="cf-card-badge">{project.type}</span>
       </div>
-      <div className="flex min-h-[38%] flex-col justify-between p-6 sm:p-8">
-        <div className="flex items-start justify-between gap-6">
-          <span className="font-display text-3xl tabular-nums text-white/40">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <ArrowUpRight
-            size={24}
-            className="mt-1 shrink-0 text-white/45 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-white"
-          />
+      <div className="cf-card-body">
+        <div className="cf-card-row">
+          <span className="cf-card-num">{String(index + 1).padStart(2, '0')}</span>
+          <ArrowUpRight size={18} className="cf-card-arrow" />
         </div>
-        <div className="mt-8">
-          <p className="text-xs uppercase tracking-[0.24em] text-white/45">{project.category}</p>
-          <h3 className="mt-3 text-balance text-[clamp(1.8rem,3.8vw,3.7rem)] leading-[0.98] tracking-tight text-white">
-            {project.title}
-          </h3>
-          <div className="mt-5 flex flex-wrap items-center gap-2.5 text-sm text-white/55">
-            <span>{project.year}</span>
-            <span className="liquid-glass rounded-full px-3 py-1 text-xs text-white/75">
-              {project.type}
+        <p className="cf-card-cat">{project.category}</p>
+        <h3 className="cf-card-title">{project.title}</h3>
+        <p className="cf-card-desc">{project.description}</p>
+        <div className="cf-card-tags">
+          <span className="cf-tag">{project.year}</span>
+          {project.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className="cf-tag">
+              {tag}
             </span>
-            {project.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="liquid-glass rounded-full px-3 py-1 text-xs text-white/65">
-                {tag}
-              </span>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </Link>
   )
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE SWIPER — clean one-card-at-a-time carousel
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileSwiper({ projects }: { projects: PortfolioProject[] }) {
+  const [current, setCurrent] = useState(0)
+  const startX = useRef(0)
+  const delta = useRef(0)
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX
+    delta.current = 0
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    delta.current = e.touches[0].clientX - startX.current
+  }
+  const onTouchEnd = () => {
+    if (delta.current > 55 && current > 0) setCurrent((c) => c - 1)
+    else if (delta.current < -55 && current < projects.length - 1)
+      setCurrent((c) => c + 1)
+    delta.current = 0
+  }
+
+  return (
+    <div className="mswipe">
+      <div
+        className="mswipe-track"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ transform: `translateX(calc(${current * -88}% - ${current * 12}px))` }}
+      >
+        {projects.map((project, index) => (
+          <div className="mswipe-slide" key={project.slug}>
+            <Link
+              to={`/work/${project.slug}`}
+              className="cf-card-inner"
+              draggable={false}
+            >
+              <div className="cf-card-media">
+                {index === current && project.mediaType === 'video' ? (
+                  <VideoPreview
+                    src={project.preview}
+                    poster={project.thumbnail}
+                    title={project.title}
+                    className="h-full w-full"
+                  />
+                ) : (
+                  <img
+                    src={project.thumbnail}
+                    alt={project.title}
+                    loading="lazy"
+                    draggable={false}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+                <span className="cf-card-badge">{project.type}</span>
+              </div>
+              <div className="cf-card-body">
+                <div className="cf-card-row">
+                  <span className="cf-card-num">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <ArrowUpRight size={18} className="cf-card-arrow" />
+                </div>
+                <p className="cf-card-cat">{project.category}</p>
+                <h3 className="cf-card-title">{project.title}</h3>
+                <p className="cf-card-desc">{project.description}</p>
+                <div className="cf-card-tags">
+                  <span className="cf-tag">{project.year}</span>
+                  {project.tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className="cf-tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+          </div>
+        ))}
+      </div>
+      <div className="cf-dots cf-dots--mobile">
+        {projects.map((p, i) => (
+          <button
+            key={p.slug}
+            type="button"
+            className={`cf-dot${i === current ? ' cf-dot--active' : ''}`}
+            onClick={() => setCurrent(i)}
+            aria-label={`Go to ${p.title}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION HEADER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 function SectionHeader({
   eyebrow,
   title,
   description,
+  align = 'left',
 }: {
   eyebrow: string
   title: string
   description: string
+  align?: 'left' | 'center'
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 34 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-120px' }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-[clamp(32px,5vw,72px)] max-w-[980px]"
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className={`pf-head${align === 'center' ? ' pf-head--center' : ''}`}
     >
-      <span className="text-xs uppercase tracking-[0.32em] text-white/50">{eyebrow}</span>
-      <h2 className="mt-5 text-balance text-[clamp(2.5rem,7vw,6.5rem)] leading-[0.94] tracking-tight text-white">
-        {title}
-      </h2>
-      <p className="mt-6 max-w-2xl text-[clamp(1rem,1.35vw,1.22rem)] leading-relaxed text-white/62">
-        {description}
-      </p>
+      <span className="pf-eyebrow">{eyebrow}</span>
+      <h2 className="pf-title">{title}</h2>
+      <p className="pf-desc">{description}</p>
     </motion.div>
   )
 }
 
-/** ── 02 / Creative — curated masonry gallery of real creatives. ── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   01 / WEBSITES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function WebsiteSection() {
+  const isMobile = useMediaQuery('(max-width: 860px)')
+
+  return (
+    <section id="websites" className="pf-section ws-section">
+      <div className="pf-inner">
+        <div className="ws-head">
+          <SectionHeader
+            eyebrow="01 / Websites"
+            title="Websites we've built"
+            description="Drag through the website archive. Each preview plays a muted walkthrough — open a card for the full case study."
+          />
+          {!isMobile && (
+            <div className="ws-drag-hint">
+              <Move size={15} />
+              <span>Drag to explore</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isMobile ? (
+        <MobileSwiper projects={websiteProjects} />
+      ) : (
+        <Coverflow projects={websiteProjects} />
+      )}
+    </section>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   02 / CREATIVE — compact masonry gallery
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 function CreativeCard({ creative }: { creative: Creative }) {
   return (
-    <figure
-      className={`group liquid-glass relative mb-[clamp(16px,2vw,28px)] overflow-hidden rounded-[24px] border border-white/10 ${
-        creative.orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-square'
-      }`}
-    >
+    <figure className={`cr-card cr-card--${creative.orientation}`}>
       <img
         src={creative.image}
         alt={creative.title}
         loading="lazy"
-        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+        className="cr-card-img"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <figcaption className="absolute inset-x-0 bottom-0 translate-y-2 p-5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-        <p className="text-xs uppercase tracking-[0.22em] text-white/60">{creative.category}</p>
-        <p className="mt-1 text-lg leading-tight tracking-tight text-white">{creative.title}</p>
+      <figcaption className="cr-card-cap">
+        <p className="cr-card-cat">{creative.category}</p>
+        <p className="cr-card-title">{creative.title}</p>
       </figcaption>
     </figure>
   )
@@ -128,17 +524,16 @@ function CreativeCard({ creative }: { creative: Creative }) {
 
 function CreativeSection() {
   return (
-    <section className="relative min-h-[100svh] w-full px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/38 to-black/48" />
-      <div className="relative z-10 mx-auto max-w-[1600px]">
+    <section className="pf-section cr-section">
+      <div className="pf-inner">
         <SectionHeader
           eyebrow="02 / Creative"
-          title="Creative Portfolio"
+          title="Creative portfolio"
           description="Brand campaigns, event posters, and social creatives — visual systems designed to stop the scroll and carry a message clearly."
         />
-        <div className="columns-1 gap-[clamp(16px,2vw,28px)] sm:columns-2 lg:columns-3">
+        <div className="cr-grid">
           {creatives.map((creative) => (
-            <div key={creative.title} className="break-inside-avoid">
+            <div className="cr-item" key={creative.title}>
               <CreativeCard creative={creative} />
             </div>
           ))}
@@ -148,20 +543,56 @@ function CreativeSection() {
   )
 }
 
-/** ── 03 / Videos — real preview clips with poster fallbacks. ── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   03 / VIDEOS — compact 16:9 grid
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function VideoCard({ project, index }: { project: PortfolioProject; index: number }) {
+  return (
+    <Link to={`/work/${project.slug}`} className="vg-card">
+      <div className="vg-card-media">
+        <VideoPreview
+          src={project.preview}
+          poster={project.thumbnail}
+          title={project.title}
+          className="h-full w-full"
+        />
+        <span className="vg-card-play">
+          <Play size={15} className="ml-0.5" fill="currentColor" />
+        </span>
+      </div>
+      <div className="vg-card-body">
+        <div className="cf-card-row">
+          <span className="cf-card-num">{String(index + 1).padStart(2, '0')}</span>
+          <ArrowUpRight size={16} className="cf-card-arrow" />
+        </div>
+        <p className="cf-card-cat">{project.category}</p>
+        <h3 className="vg-card-title">{project.title}</h3>
+        <div className="cf-card-tags">
+          <span className="cf-tag">{project.year}</span>
+          {project.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className="cf-tag">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 function VideoSection() {
   return (
-    <section className="relative min-h-[100svh] w-full px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/38 to-black/48" />
-      <div className="relative z-10 mx-auto max-w-[1600px]">
+    <section className="pf-section vg-section">
+      <div className="pf-inner">
         <SectionHeader
           eyebrow="03 / Videos"
-          title="Videos We've Edited"
-          description="Cinematic short films and short-form edits — paced, graded, and built to hold attention. Previews play muted; open a project for the full story."
+          title="Videos we've edited"
+          description="Cinematic short films and short-form edits — paced, graded, and built to hold attention."
         />
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-[clamp(24px,4vw,56px)]">
+        <div className="vg-grid">
           {videoProjects.map((project, index) => (
-            <ProjectCard key={project.slug} project={project} index={index} />
+            <VideoCard key={project.slug} project={project} index={index} />
           ))}
         </div>
       </div>
@@ -169,186 +600,49 @@ function VideoSection() {
   )
 }
 
-function DraggableWebsites({
-  projects,
-  lowerAnimationActive,
-  lowerAnimationResetKey,
-}: {
-  projects: PortfolioProject[]
-  lowerAnimationActive: boolean
-  lowerAnimationResetKey: number
-}) {
-  const ref = useRef<HTMLElement>(null)
-  const isInView = useInView(ref, { amount: 0.28, margin: '-12% 0px -12% 0px' })
-  const dragActive = lowerAnimationActive && isInView
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end start'],
-  })
-  const y = useTransform(scrollYProgress, [0, 1], ['8%', '-10%'])
-  const rotate = useTransform(scrollYProgress, [0, 0.5, 1], [-2, 0, 2])
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN EXPORT
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-  return (
-    <section
-      ref={ref}
-      id="websites"
-      className="relative min-h-[112svh] w-full overflow-hidden px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-black/28 to-black/42" />
-      <div className="relative z-10 mx-auto grid min-h-[calc(112svh-160px)] max-w-[1700px] min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-[0.8fr_minmax(0,1.2fr)]">
-        <div className="w-full min-w-0 max-w-[720px]">
-          <span className="text-xs uppercase tracking-[0.32em] text-white/52">01 / Websites</span>
-          <h2 className="mt-5 max-w-full text-balance text-[clamp(3rem,8vw,7.5rem)] leading-[0.9] tracking-tight text-white">
-            Websites We&apos;ve Built
-          </h2>
-          <p className="mt-7 max-w-xl text-[clamp(1rem,1.4vw,1.25rem)] leading-relaxed text-white/66">
-            Drag through the website archive as it comes into view. Each preview plays a muted
-            walkthrough — hover or open a card for the full case study.
-          </p>
-          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 text-sm text-white/68 backdrop-blur-md">
-            <Move size={16} />
-            <span>{dragActive ? 'Drag is active' : 'Scroll to activate'}</span>
-          </div>
-        </div>
-
-        <motion.div
-          key={`mobile-drag-${lowerAnimationResetKey}`}
-          drag="x"
-          dragMomentum={false}
-          dragElastic={0.08}
-          dragConstraints={{ left: -720, right: 0 }}
-          initial={{ opacity: 0, scale: 0.94, x: 0 }}
-          animate={{
-            opacity: dragActive ? 1 : 0,
-            scale: dragActive ? 1 : 0.96,
-            x: 0,
-          }}
-          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className={`flex gap-5 overflow-visible pb-4 lg:hidden ${
-            dragActive ? 'pointer-events-auto' : 'pointer-events-none'
-          }`}
-        >
-          {projects.map((project, index) => (
-            <div key={project.slug} className="min-w-[min(82vw,430px)]">
-              <ProjectCard project={project} index={index} />
-            </div>
-          ))}
-        </motion.div>
-
-        <motion.div
-          key={`desktop-drag-${lowerAnimationResetKey}`}
-          style={{ y, rotate }}
-          initial={{ opacity: 0, scale: 0.94, filter: 'blur(2px)' }}
-          animate={{
-            opacity: dragActive ? 1 : 0,
-            scale: dragActive ? 1 : 0.94,
-            filter: dragActive ? 'blur(0px)' : 'blur(2px)',
-          }}
-          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative hidden min-h-[820px] lg:block ${
-            dragActive ? 'pointer-events-auto' : 'pointer-events-none'
-          }`}
-        >
-          {projects.map((project, index) => {
-            const positions = [
-              'left-[2%] top-[4%] rotate-[-7deg]',
-              'right-[2%] top-[16%] rotate-[5deg]',
-              'left-[12%] bottom-[8%] rotate-[4deg]',
-              'right-[14%] bottom-[2%] rotate-[-4deg]',
-            ]
-
-            return (
-              <motion.div
-                key={project.slug}
-                drag
-                dragMomentum={false}
-                dragElastic={0.12}
-                dragConstraints={{ left: -220, right: 220, top: -160, bottom: 160 }}
-                whileDrag={{ scale: 1.04, zIndex: 30, rotate: 0 }}
-                whileHover={{ scale: 1.025 }}
-                className={`absolute w-[min(76vw,520px)] cursor-grab active:cursor-grabbing ${positions[index % positions.length]}`}
-              >
-                <ProjectCard project={project} index={index} />
-              </motion.div>
-            )
-          })}
-        </motion.div>
-      </div>
-    </section>
-  )
-}
-
-type ProjectShowcaseProps = {
-  lowerAnimationActive: boolean
-  lowerAnimationResetKey: number
-}
-
-export default function ProjectShowcase({
-  lowerAnimationActive,
-  lowerAnimationResetKey,
-}: ProjectShowcaseProps) {
+export default function ProjectShowcase() {
   return (
     <>
-      <DraggableWebsites
-        projects={websiteProjects}
-        lowerAnimationActive={lowerAnimationActive}
-        lowerAnimationResetKey={lowerAnimationResetKey}
-      />
+      <WebsiteSection />
       <CreativeSection />
       <VideoSection />
 
-      <section
-        id="contact"
-        className="relative min-h-[100svh] w-full px-[clamp(20px,6vw,96px)] py-[clamp(72px,10vw,140px)]"
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/48 to-black/70" />
-        <div className="relative z-10 mx-auto flex min-h-[calc(100svh-180px)] max-w-[1400px] flex-col justify-center">
-          <span className="text-xs uppercase tracking-[0.32em] text-white/50">04 / Contact</span>
-          <h2 className="mt-5 max-w-5xl text-balance text-[clamp(3rem,8vw,7rem)] leading-[0.92] tracking-tight text-white">
+      <section id="contact" className="pf-section contact-section">
+        <div className="pf-inner contact-inner">
+          <span className="pf-eyebrow">04 / Contact</span>
+          <h2 className="contact-heading">
             Let&apos;s build the next room around your brand.
           </h2>
-          <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="contact-links">
             <motion.a
               href={WHATSAPP_URL}
               target="_blank"
               rel="noreferrer"
               whileHover={{ scale: 1.035 }}
               whileTap={{ scale: 0.98 }}
-              className="accent-gradient inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-bg"
+              className="contact-btn-primary"
             >
               <MessageCircle size={17} />
               Start on WhatsApp
             </motion.a>
-            <a
-              href={EMAIL_HREF}
-              className="liquid-glass inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-white"
-            >
+            <a href={EMAIL_HREF} className="contact-btn-secondary">
               <Mail size={17} />
               {EMAIL}
             </a>
-            <a
-              href={PHONE_HREF}
-              className="liquid-glass inline-flex w-fit items-center gap-2 rounded-full px-7 py-4 text-sm font-medium text-white"
-            >
+            <a href={PHONE_HREF} className="contact-btn-secondary">
               <Phone size={17} />
               {PHONE_DISPLAY}
             </a>
           </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/55">
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
+          <div className="contact-social">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="contact-social-link">
               Instagram
             </a>
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
+            <a href={LINKEDIN_URL} target="_blank" rel="noreferrer" className="contact-social-link">
               LinkedIn
             </a>
           </div>

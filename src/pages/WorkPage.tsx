@@ -109,10 +109,7 @@ export default function WorkPage() {
           id="work-list"
           className="relative scroll-mt-24 overflow-hidden"
         >
-          <ProjectShowcase
-            lowerAnimationActive={lowerAnimationActive}
-            lowerAnimationResetKey={lowerAnimationResetKey}
-          />
+          <ProjectShowcase />
         </section>
 
         <Footer />

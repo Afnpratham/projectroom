@@ -46,6 +46,24 @@ export type Creative = {
 export const portfolio: PortfolioProject[] = [
   // ── Websites ──────────────────────────────────────────────
   {
+    slug: 'orbit-archive',
+    title: 'The Orbit Archive',
+    category: 'Website / Motion',
+    year: '2026',
+    type: 'Personal Project',
+    group: 'website',
+    description:
+      'A cinematic studio archive — a floating wall of website walkthroughs, posters and film edits, wrapped in a Web3 motion system and built to move with the brand.',
+    mediaType: 'video',
+    preview: '/portfolio/websites/orbit-archive-preview.mp4',
+    thumbnail: '/portfolio/thumbnails/orbit-archive-preview.jpg',
+    ratio: '16/9',
+    tags: ['Website', 'Motion', 'Cinematic'],
+    liveUrl: '',
+    services: ['Art Direction', 'Web Design', 'Motion', 'Frontend Development'],
+    featured: true,
+  },
+  {
     slug: 'orbit-room',
     title: 'The Orbit Room',
     category: 'Website Development',
