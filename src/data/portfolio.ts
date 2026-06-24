@@ -55,8 +55,8 @@ export const portfolio: PortfolioProject[] = [
     description:
       'The studio site itself — a cosmic-floral identity with cinematic motion, art direction, and a fully responsive front end.',
     mediaType: 'video',
-    preview: '/portfolio/websites/website-preview-1.mp4',
-    thumbnail: '/portfolio/thumbnails/website-preview-1.jpg',
+    preview: '/portfolio/websites/orbit-room-preview.mp4',
+    thumbnail: '/portfolio/thumbnails/orbit-room-preview.jpg',
     ratio: '16/9',
     tags: ['Website', 'Brand', 'Motion'],
     liveUrl: '',
@@ -73,8 +73,8 @@ export const portfolio: PortfolioProject[] = [
     description:
       'A warm, human campaign landing page built around connection — calm typography, soft motion, and a clear emotional hook.',
     mediaType: 'video',
-    preview: '/portfolio/websites/website-preview-2.mp4',
-    thumbnail: '/portfolio/thumbnails/website-preview-2.jpg',
+    preview: '/portfolio/websites/companioo-preview.mp4',
+    thumbnail: '/portfolio/thumbnails/companioo-preview.jpg',
     ratio: '16/9',
     tags: ['Landing Page', 'Campaign', 'Motion'],
     liveUrl: '',
@@ -91,8 +91,8 @@ export const portfolio: PortfolioProject[] = [
     description:
       'A clean product web app that helps students calculate SGPA and plan the grades they need to hit a target CGPA.',
     mediaType: 'video',
-    preview: '/portfolio/websites/website-preview-6.mp4',
-    thumbnail: '/portfolio/thumbnails/website-preview-6.jpg',
+    preview: '/portfolio/websites/cgpa-path-preview.mp4',
+    thumbnail: '/portfolio/thumbnails/cgpa-path-preview.jpg',
     ratio: '16/9',
     tags: ['Web App', 'Product', 'UX'],
     liveUrl: '',
@@ -109,8 +109,8 @@ export const portfolio: PortfolioProject[] = [
     description:
       'A cinematic AI automation interface — a dark, precise command core where tools stay dormant until summoned.',
     mediaType: 'video',
-    preview: '/portfolio/websites/website-preview-7.mp4',
-    thumbnail: '/portfolio/thumbnails/website-preview-7.jpg',
+    preview: '/portfolio/websites/jarvis-preview.mp4',
+    thumbnail: '/portfolio/thumbnails/jarvis-preview.jpg',
     ratio: '16/9',
     tags: ['Web App', 'AI', 'Interface'],
     liveUrl: '',
